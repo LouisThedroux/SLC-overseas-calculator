@@ -28,7 +28,7 @@ st.sidebar.markdown(
     The calculator is for informational purposes only and should not be considered financial advice. Please consult with a financial advisor for personalized guidance.
     ## Contact
     If you have any questions or feedback about this project, please feel free to reach out.
-    ## Author
+    ## Author/Creator
     Andrew Thompson  
     [GitHub](https://github.com/LouisThedroux) | [LinkedIn](https://www.linkedin.com/in/andrew-thompson-3a36b11a2/)
     
