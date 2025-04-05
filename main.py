@@ -20,7 +20,7 @@ st.sidebar.markdown(
     2. Choose your country of residence.
     3. Select your currency.
     4. Enter your earnings in the selected currency.
-    5. The calculator will display your earnings in GBP and the estimated monthly charges for your SLC loan.
+    5. The calculator will display your earnings in GBP and the estimated monthly charges for your SLC loan.pip 
     6. You can also view the detailed breakdown of your earnings subject to SLC charges.
     7. The calculator provides a disclaimer about the exchange rates used.
     8. The data used in this calculator is sourced from the UK government and is updated annually.
@@ -52,13 +52,19 @@ st.title("Student Loan Company (SLC) Overseas Charges Calculator")
 
 # Loan plan selection using checkboxes
 st.subheader("Start by selecting the Student Loan Plans that you currently have:")
-plan_1_selected = st.checkbox("Plan 1", value=True)
-plan_2_selected = st.checkbox("Plan 2", value=True)
-postgraduate_selected = st.checkbox("Postgraduate", value=True)
+plan_1_selected = st.checkbox("Plan 1", value=False)
+plan_2_selected = st.checkbox("Plan 2", value=False)
+postgraduate_selected = st.checkbox("Postgraduate", value=False)
 
 # Country selection
-countries = data["Country/Territory"].unique()
-selected_country = st.selectbox("Select your current country of residence:", options=countries)
+# Get the list of countries and sort it alphabetically
+countries = sorted(data["Country/Territory"].unique())
+
+# Set the default index to the position of "Canada" in the sorted list
+default_index = countries.index("Canada") if "Canada" in countries else 0
+
+# Create the selectbox with the default selection set to Canada
+selected_country = st.selectbox("Select your current country of residence:", options=countries, index=default_index)
 
 # Auto-populate currency based on selected country
 currency_column = "Currency"  # Replace with the actual column name for currency in your dataframe
@@ -90,7 +96,17 @@ if plan_1_selected:
 
 if plan_2_selected:
     plan_2_threshold = data[(data["loan_type"] == "Plan 2") & (data["Country/Territory"] == selected_country)]["Earnings threshold (GBP)"].iloc[0]
-    plan_2_subject_to_charges = max(0, earnings_in_gbp - plan_2_threshold)
+    
+    if "Upper earnings threshold (GBP)" in data.columns:
+        plan_2_upper_threshold = data[(data["loan_type"] == "Plan 2") & (data["Country/Territory"] == selected_country)]["Upper earnings threshold (GBP)"].iloc[0]
+    else:
+        st.error("The 'Upper threshold (GBP)' column is missing from the data.")
+    
+    if earnings_in_gbp > plan_2_upper_threshold:
+        plan_2_subject_to_charges = max(0, plan_2_upper_threshold - plan_2_threshold)
+    else:
+        plan_2_subject_to_charges = max(0, earnings_in_gbp - plan_2_threshold)
+    
     plan_2_charges = plan_2_subject_to_charges * 0.09
     total_yearly_charges += plan_2_charges
 
@@ -103,7 +119,7 @@ if postgraduate_selected:
 # Calculate monthly cost
 monthly_cost = total_yearly_charges / 12
 
-# Display the monthly cost in a bright box
+# Display the monthly cost in a bright box with some html that I dont fully understand
 st.markdown(
     f"""
     <div style="background-color: #ffcccb; padding: 20px; border-radius: 10px; text-align: center;">
@@ -133,7 +149,17 @@ if plan_2_selected:
     with st.container():
         st.markdown("### Plan 2")
         plan_2_threshold = data[(data["loan_type"] == "Plan 2") & (data["Country/Territory"] == selected_country)]["Earnings threshold (GBP)"].iloc[0]
-        plan_2_subject_to_charges = max(0, earnings_in_gbp - plan_2_threshold)
+        
+        if "Upper earnings threshold (GBP)" in data.columns:
+            plan_2_upper_threshold = data[(data["loan_type"] == "Plan 2") & (data["Country/Territory"] == selected_country)]["Upper earnings threshold (GBP)"].iloc[0]
+        else:
+            st.error("The 'Upper threshold (GBP)' column is missing from the data.")
+        
+        if earnings_in_gbp > plan_2_upper_threshold:
+            plan_2_subject_to_charges = max(0, plan_2_upper_threshold - plan_2_threshold)
+        else:
+            plan_2_subject_to_charges = max(0, earnings_in_gbp - plan_2_threshold)
+        
         plan_2_charges = plan_2_subject_to_charges * 0.09
         st.write(f"£{plan_2_subject_to_charges:.2f} of your earnings are over the threshold and are subject to SLC charges. SLC charges are 9% of of this amount. Based on your salary information, your SLC charges will be £{plan_2_charges:.2f} over 1 year for your Plan 2 loan.")
 if plan_2_selected:

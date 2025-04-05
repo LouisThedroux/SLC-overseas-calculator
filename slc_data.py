@@ -25,9 +25,11 @@ def get_thresholds_data():
         df = pd.read_html(str(table))[0]
         tables[key] = df
     
-    # Standardize column names
     if "Lower earnings threshold (GBP)" in tables["plan_2"].columns:
-        tables["plan_2"] = tables["plan_2"].rename(columns={"Lower earnings threshold (GBP)": "Earnings threshold (GBP)"})
+        tables["plan_2"] = tables["plan_2"].rename(columns={
+            "Lower earnings threshold (GBP)": "Earnings threshold (GBP)",
+            "Upper earnings threshold (GBP)": "Upper earnings threshold (GBP)"  
+        })
     
     thresholds_df = pd.concat(tables.values(), keys=tables.keys()).reset_index()
     thresholds_df = thresholds_df.rename(columns={"level_0": "loan_type"})
@@ -41,7 +43,6 @@ def get_thresholds_data():
     thresholds_df["study_type"] = thresholds_df["loan_type"].apply(lambda x: "postgraduate" if x == "Postgraduate" else "undergraduate")
     thresholds_df["prop_over_threshold"] = thresholds_df["loan_type"].apply(lambda x: 0.06 if x == "Postgraduate" else 0.09)
     
-    # Drop the study type column if it exists
     if "study_type" in thresholds_df.columns:
         thresholds_df = thresholds_df.drop(columns=["study_type"])
         
@@ -51,18 +52,20 @@ def get_thresholds_data():
     # Rename prop_over_threshold to percentage_to_pay
     thresholds_df = thresholds_df.rename(columns={"prop_over_threshold": "percentage_to_pay"})
     
-    # Convert currency columns
     currency_cols = [col for col in thresholds_df.columns if "GBP" in col]
     for col in currency_cols:
         thresholds_df[col] = thresholds_df[col].replace(r'[^0-9.]', '', regex=True).astype(float)
+    
+    # Add logic for upper threshold for Plan 2
+    if "Upper earnings threshold (GBP)" in thresholds_df.columns:
+        thresholds_df["adjusted_threshold"] = thresholds_df.apply(
+            lambda row: row["Upper earnings threshold (GBP)"] if row["loan_type"] == "Plan 2" else row["Earnings threshold (GBP)"],
+            axis=1
+        )
     
     return thresholds_df
 
 with open("slc_data.pkl", "wb") as f:
     pickle.dump(get_thresholds_data(), f)
 
-
-# # Example usage
-# df = get_thresholds_data()
-# print(df[df["Country/Territory"] == "Canada"])
 
